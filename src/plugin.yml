@@ -1,0 +1,4 @@
+name: McKillRewards
+version: 0.1
+authors: [ mewin ]
+main: de.mewin.killRewards.KillRewardsPlugin
