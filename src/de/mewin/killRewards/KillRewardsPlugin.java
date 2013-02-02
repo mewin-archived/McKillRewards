@@ -123,5 +123,7 @@ public class KillRewardsPlugin extends JavaPlugin
                 {}
             }
         }
+        
+        getLogger().log(Level.INFO, "{0} rewards loaded.", rewards.size());
     }
 }

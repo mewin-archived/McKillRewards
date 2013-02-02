@@ -98,6 +98,13 @@ public class ItemReward extends Reward
                 stack.setItemMeta(meta);
             }
             
+            if (map.containsKey("lore"))
+            {
+                ItemMeta meta = stack.getItemMeta();
+                meta.setLore((ArrayList) map.get("lore"));
+                stack.setItemMeta(meta);
+            }
+            
             stacks.add(stack);
         }
     }

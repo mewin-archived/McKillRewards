@@ -38,12 +38,40 @@ public abstract class Reward
     
     public static Reward rewardFromYaml(HashMap<String, Object> yaml)
     {
-        String type = (String) yaml.get("type");
-        if (type.equalsIgnoreCase("items"))
+        try
         {
-            return new ItemReward((Integer) yaml.get("kills"), (ArrayList) yaml.get("items"), (String) yaml.get("name"));
+            String type = (String) yaml.get("type");
+            int kills = yaml.containsKey("kills") ? (Integer) yaml.get("kills") : 0;
+            if (type.equalsIgnoreCase("items"))
+            {
+                return new ItemReward(kills, (ArrayList) yaml.get("items"), (String) yaml.get("name"));
+            }
+            else if (type.equalsIgnoreCase("exp"))
+            {
+                return new ExpReward(kills, (String) yaml.get("name"), yaml.containsKey("exp") ? (Integer) yaml.get("exp") : 0, yaml.containsKey("levels") ? (Integer) yaml.get("levels") : 0);
+            }
+            else if (type.equalsIgnoreCase("multi"))
+            {
+                return new MultiReward(kills, (String) yaml.get("name"), (ArrayList) yaml.get("rewards"));
+            }
+            else if (type.equalsIgnoreCase("random"))
+            {
+                return new RandomReward(kills, (String) yaml.get("name"), (ArrayList) yaml.get("rewards"));
+            }
+            else if (type.equalsIgnoreCase("potion"))
+            {
+                return new PotionReward(kills, type, (HashMap) yaml.get("effect"));
+            }
+            else
+            {
+                return null;
+            }
         }
-        else
+        catch(ClassCastException ex)
+        {
+            return null;
+        }
+        catch(NullPointerException ex)
         {
             return null;
         }
