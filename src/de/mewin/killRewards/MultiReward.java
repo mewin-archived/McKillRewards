@@ -19,6 +19,8 @@ package de.mewin.killRewards;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.logging.Level;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 /**
@@ -42,6 +44,11 @@ public class MultiReward extends Reward
             if (reward != null)
             {
                 rewards.add(reward);
+                Bukkit.getLogger().log(Level.INFO, "Adding reward of type {0} to {1}", new Object[]{reward.getClass().getSimpleName(), this.getName()});
+            }
+            else
+            {
+                Bukkit.getLogger().log(Level.WARNING, "Could not add reward to {0}.", this.getName());
             }
         }
     }
@@ -54,5 +61,4 @@ public class MultiReward extends Reward
             reward.give(player);
         }
     }
-
 }
