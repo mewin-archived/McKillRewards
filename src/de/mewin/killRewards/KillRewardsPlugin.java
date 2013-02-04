@@ -65,8 +65,17 @@ public class KillRewardsPlugin extends JavaPlugin
         if (rewards.containsKey(spree))
         {
             Player pl = getServer().getPlayer(player);
-            pl.sendMessage(ChatColor.GREEN + "You received " + rewards.get(spree).getName());
-            rewards.get(spree).give(pl);
+            Reward reward = rewards.get(spree);
+            pl.sendMessage(ChatColor.GREEN + "You received " + reward.getName());
+            reward.give(pl);
+            if (reward.getGlobalMessage() != null)
+            {
+                for (Player oPlayer : getServer().getOnlinePlayers())
+                {
+                    oPlayer.sendMessage(ChatColor.translateAlternateColorCodes('&', reward.getGlobalMessage()
+                            .replaceAll("\\{player\\}", pl.getDisplayName())));
+                }
+            }
         }
     }
     
@@ -102,7 +111,12 @@ public class KillRewardsPlugin extends JavaPlugin
                 Reward reward = Reward.rewardFromYaml(rMap);
                 if (reward != null)
                 {
+                    getLogger().log(Level.INFO, "Reward {0} loaded.", reward.getName());
                     rewards.put(reward.getKills(), reward);
+                }
+                else
+                {
+                    getLogger().log(Level.WARNING, "Error loading reward.");
                 }
             }
             str.close();
