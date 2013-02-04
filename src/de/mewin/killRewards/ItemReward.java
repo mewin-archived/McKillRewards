@@ -53,9 +53,7 @@ public class ItemReward extends Reward
             
             if (map.containsKey("data"))
             {
-                MaterialData data = stack.getData();
-                data.setData((Byte) map.get("data"));
-                stack.setData(data);
+                stack.setDurability(((Integer) map.get("data")).shortValue());
             }
             
             if (map.containsKey("amount"))
