@@ -19,6 +19,7 @@ package de.mewin.killRewards;
 
 import java.util.HashMap;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -47,6 +48,14 @@ public class KillListener implements Listener
         {
             lastAttack.put(((Player) e.getEntity()).getName(), new Object[] {
                 ((Player) e.getDamager()).getName(), 
+                System.currentTimeMillis()
+            });
+        }
+        else if (e.getDamage() > 0 && e.getDamager() instanceof Projectile
+                && ((Projectile) e.getDamager()).getShooter() instanceof Player)
+        {
+            lastAttack.put(((Player) e.getEntity()).getName(), new Object[] {
+                ((Player) ((Projectile) e.getDamager()).getShooter()).getName(), 
                 System.currentTimeMillis()
             });
         }
