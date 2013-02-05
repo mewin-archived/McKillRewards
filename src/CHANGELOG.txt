@@ -2,6 +2,8 @@
 * added multiworld support
 * removed message on reward
 * added custom messages
+* added permissions
+* added commands
 * fixed multiple rewards with same kill count not working
 === Version 0.1 ===
 * initial release
