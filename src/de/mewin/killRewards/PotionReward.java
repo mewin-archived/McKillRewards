@@ -41,7 +41,12 @@ public class PotionReward extends Reward
         }
         else
         {
-            type = PotionEffectType.getByName((String) tObj);
+            type = PotionEffectType.getByName(((String) tObj).toUpperCase());
+        }
+        
+        if (type == null)
+        {
+            throw new RuntimeException("Unknown potion type: " + tObj.toString());
         }
         
         duration = (Integer) map.get("duration");
