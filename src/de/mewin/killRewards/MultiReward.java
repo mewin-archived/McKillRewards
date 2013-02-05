@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 /**
@@ -58,6 +59,10 @@ public class MultiReward extends Reward
     {
         for (Reward reward : rewards)
         {
+            if (reward.getMessage() != null)
+            {
+                player.sendMessage(ChatColor.translateAlternateColorCodes('&', reward.getMessage()));
+            }
             reward.give(player);
         }
     }

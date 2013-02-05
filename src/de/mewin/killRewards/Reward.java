@@ -32,6 +32,7 @@ public abstract class Reward
     private int kills;
     private String name;
     private String globalMessage = null;
+    private String message = null;
     
     public Reward(int kills, String name)
     {
@@ -77,6 +78,11 @@ public abstract class Reward
                 reward.setGlobalMessage((String) yaml.get("global-message"));
             }
             
+            if (yaml.containsKey("message"))
+            {
+                reward.setMessage((String) yaml.get("message"));
+            }
+            
             return reward;
         }
         catch(ClassCastException ex)
@@ -99,6 +105,16 @@ public abstract class Reward
     public int getKills()
     {
         return kills;
+    }
+    
+    public void setMessage(String message)
+    {
+        this.message = message;
+    }
+    
+    public String getMessage()
+    {
+        return this.message;
     }
     
     public void setGlobalMessage(String message)
