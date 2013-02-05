@@ -1,0 +1,68 @@
+# Sample Mc Kill Rewards rewards.yml file
+# This file should explain you how McKillRewards works
+# every rewards file has a rewards node at the top level
+rewards:
+  # after that you can declare the rewards
+  # any level indented by two spaces
+  # always use spaces, if you use tabs the plugin will not be able to parse the file
+  # in the second level you declare the different rewards
+  # as this is a list any reward starts with a "-"
+  # the rewards must at least have a name, a type, a number of kills and the data for the type
+  - name: First_Kill
+    # you can set a message that is sent to the player when he gets the reward:
+    # in this message you can use the "&"-codes (see http://www.minecraftwiki.net/wiki/Formatting_codes for that)
+    message: "&8Congratulations, you got your first kill!"
+    type: items
+    kills: 1
+    # the item reward (type: items) has "items" as additional information
+    items:
+      # here you can set what items the player gets with the reward
+      # as this is a list again, you also have to start any item with a "-":
+      # item declarations must at least contain the item type
+      # this type can be given as the item id or the item name
+      - type: apple
+        # additionally you can set the amount of items the player gets:
+        amount: 10
+      # the second item starts with a "-" again:
+      - type: wool
+        # you can additionally give the item a data value if you want a different variant of the item
+        # in this case we want to give the player red wool:
+        data: 14
+        amount: 64
+      - type: tnt
+        # you can also change the name of the item to any value you want:
+        # in this name you can also use "&" to format the name
+        # it is allways good to write texts between quotation marks to make sure they are parsed correctly
+        name: "&5Heavy TNT"
+        # to set the text under the item use the lore tag:
+        lore:
+          # as the lore can have multiple lines it is a list again and needs "-" in front of each line:
+          - "&5Heavy TNT &3explodes heavy."
+          - "&3This is, because it is &5Heavy TNT."
+      - type: diamond_sword
+        # finally, you can also add enchantments to items:
+        enchantments:
+          # and again, a list
+          # here you have to use the ids, because the names do not work properly yet
+          # for a list of the enchantments look here: http://www.minecraftwiki.net/wiki/Enchanting
+          - type: 16
+            level: 3
+        name: "&3The extreme Sword"
+  # the second reward is created as a new list item:
+  - name: Killing_Spree
+    # another reward type is the potion reward
+    # it gives a player a potion effect if he as the given killing spree
+    type: potion
+    kills: 3
+    # you can also set a message that is sent to all players on the server with global-message:
+    # in this message "{player}" will be replaced with the name of the player that got the spree
+    global-message: "&3{player} &4is on a killing spree!"
+    # the potion reward uses the effect tag to set the effect you get with the reward
+    effect:
+      # here you can use either the effect id or name, but the name may not work as you expect
+      type: speed
+      # you will always have to set a duration for the effect to
+      # the duration should be given in milliseconds
+      duration: 10000
+      # additionally you can also set a level for the effect:
+      level: 3
