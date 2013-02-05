@@ -75,14 +75,14 @@ public class ItemReward extends Reward
                 {
                     Enchantment ench;
                     int level = -1;
-                    Object name = eMap.get("name");
+                    Object name = eMap.get("type");
                     if (name instanceof String)
                     {
-                        ench = Enchantment.getByName((String) eMap.get("name"));
+                        ench = Enchantment.getByName((String) eMap.get("type"));
                     }
                     else
                     {
-                        ench = Enchantment.getById((Integer) eMap.get("name"));
+                        ench = Enchantment.getById((Integer) eMap.get("type"));
                     }
                     
                     if (eMap.containsKey("level"))
