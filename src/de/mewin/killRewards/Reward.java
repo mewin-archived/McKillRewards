@@ -95,6 +95,11 @@ public abstract class Reward
             Bukkit.getLogger().log(Level.WARNING, "NullPointerException: {0}", ex.getStackTrace()[0].getFileName() + ":" + ex.getStackTrace()[0].getLineNumber());
             return null;
         }
+        catch(RuntimeException ex)
+        {
+            Bukkit.getLogger().log(Level.WARNING, ex.getMessage());
+            return null;
+        }
     }
     
     public String getName()
