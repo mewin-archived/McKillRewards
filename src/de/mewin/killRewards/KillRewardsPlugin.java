@@ -20,6 +20,8 @@ package de.mewin.killRewards;
 import de.mewin.killRewards.util.ChatHandler;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -196,6 +198,16 @@ public class KillRewardsPlugin extends JavaPlugin
     {
         File rewardsFile = new File(getDataFolder(), "rewards.yml");
         
+        if (!getDataFolder().exists())
+        {
+            getDataFolder().mkdir();
+        }
+        
+        if (!rewardsFile.exists())
+        {
+            createDefaultRewardsFile(rewardsFile);
+        }
+        
         rewards = loadRewards(rewardsFile);
         
         getLogger().log(Level.INFO, "{0} rewards loaded.", rewards.size());
@@ -354,5 +366,44 @@ public class KillRewardsPlugin extends JavaPlugin
         }
     }
     
-    
+    private void createDefaultRewardsFile(File file)
+    {
+        FileOutputStream out = null;
+        InputStream in = null;
+        try
+        {
+            file.createNewFile();
+            out = new FileOutputStream(file);
+            in = KillRewardsPlugin.class.getResourceAsStream("/rewards.yml");
+            
+            int i;
+            while ((i = in.read()) > -1)
+            {
+                out.write((byte) i);
+            }
+        }
+        catch(Exception ex)
+        {
+            getLogger().log(Level.SEVERE, "Could not create default rewards.yml file: ", ex);
+        }
+        finally
+        {
+            try
+            {
+                if (out != null)
+                {
+                    out.close();
+                }
+                
+                if (in != null)
+                {
+                    in.close();
+                }
+            }
+            catch(Exception ex)
+            {
+                
+            }
+        }
+    }
 }
