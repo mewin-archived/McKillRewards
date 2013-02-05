@@ -1,0 +1,7 @@
+=== Version 0.2 ===
+* added multiworld support
+* removed message on reward
+* added custom messages
+* fixed multiple rewards with same kill count not working
+=== Version 0.1 ===
+* initial release
