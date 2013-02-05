@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.Yaml;
@@ -36,12 +37,14 @@ public class KillRewardsPlugin extends JavaPlugin
     private KillListener listener;
     private HashMap<String, Integer> sprees;
     private HashMap<Integer, Reward> rewards;
+    private HashMap<String, HashMap<Integer, Reward>> worldRewards;
     
     @Override
     public void onEnable()
     {
         sprees = new HashMap<String, Integer>();
         rewards = new HashMap<Integer, Reward>();
+        worldRewards = new HashMap<String, HashMap<Integer, Reward>>();
         listener = new KillListener(this);
         loadRewards();
         getServer().getPluginManager().registerEvents(listener, this);
@@ -55,6 +58,8 @@ public class KillRewardsPlugin extends JavaPlugin
     
     public void addSpree(String player)
     {
+        Player pl = getServer().getPlayer(player);
+        World w = pl.getWorld();
         int spree = 1;
         if (sprees.containsKey(player))
         {
@@ -64,9 +69,29 @@ public class KillRewardsPlugin extends JavaPlugin
         
         if (rewards.containsKey(spree))
         {
-            Player pl = getServer().getPlayer(player);
             Reward reward = rewards.get(spree);
-            pl.sendMessage(ChatColor.GREEN + "You received " + reward.getName());
+            if (reward.getMessage() != null)
+            {
+                pl.sendMessage(ChatColor.translateAlternateColorCodes('&', reward.getMessage()));
+            }
+            reward.give(pl);
+            if (reward.getGlobalMessage() != null)
+            {
+                for (Player oPlayer : getServer().getOnlinePlayers())
+                {
+                    oPlayer.sendMessage(ChatColor.translateAlternateColorCodes('&', reward.getGlobalMessage()
+                            .replaceAll("\\{player\\}", pl.getDisplayName())));
+                }
+            }
+        }
+        
+        if (worldRewards.containsKey(w.getName()) && worldRewards.get(w.getName()).containsKey(spree))
+        {
+            Reward reward = worldRewards.get(w.getName()).get(spree);
+            if (reward.getMessage() != null)
+            {
+                pl.sendMessage(ChatColor.translateAlternateColorCodes('&', reward.getMessage()));
+            }
             reward.give(pl);
             if (reward.getGlobalMessage() != null)
             {
@@ -96,9 +121,9 @@ public class KillRewardsPlugin extends JavaPlugin
         }
     }
     
-    private void loadRewards()
+    private HashMap<Integer, Reward> loadRewards(File rewardsFile)
     {
-        File rewardsFile = new File(getDataFolder(), "rewards.yml");
+        HashMap<Integer, Reward> lRewards = new HashMap<Integer, Reward>();
         FileInputStream str = null;
         try
         {
@@ -111,8 +136,27 @@ public class KillRewardsPlugin extends JavaPlugin
                 Reward reward = Reward.rewardFromYaml(rMap);
                 if (reward != null)
                 {
+                    int kills = reward.getKills();
+                    Reward currentReward = lRewards.get(kills);
                     getLogger().log(Level.INFO, "Reward {0} loaded.", reward.getName());
-                    rewards.put(reward.getKills(), reward);
+                    if (currentReward == null)
+                    {
+                        lRewards.put(reward.getKills(), reward);
+                    }
+                    else
+                    {
+                        HiddenMultiReward multi;
+                        if (currentReward instanceof HiddenMultiReward)
+                        {
+                            multi = (HiddenMultiReward) currentReward;
+                        }
+                        else
+                        {
+                            multi = new HiddenMultiReward(kills, currentReward.getName());
+                            multi.addReward(currentReward);
+                        }
+                        multi.addReward(reward);
+                    }
                 }
                 else
                 {
@@ -138,6 +182,24 @@ public class KillRewardsPlugin extends JavaPlugin
             }
         }
         
-        getLogger().log(Level.INFO, "{0} rewards loaded.", rewards.size());
+        getLogger().log(Level.INFO, "{0} rewards loaded.", lRewards.size());
+        
+        return lRewards;
+    }
+    
+    private void loadRewards()
+    {
+        File rewardsFile = new File(getDataFolder(), "rewards.yml");
+        
+        rewards = loadRewards(rewardsFile);
+        
+        for (World world : getServer().getWorlds())
+        {
+            File worldFile = new File(getDataFolder(), "rewards-" + world.getName() + ".yml");
+            if (worldFile.exists())
+            {
+                worldRewards.put(world.getName(), loadRewards(worldFile));
+            }
+        }
     }
 }
