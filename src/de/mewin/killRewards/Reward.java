@@ -37,7 +37,14 @@ public abstract class Reward
     public Reward(int kills, String name)
     {
         this.kills = kills;
-        this.name = name;
+        if (name != null)
+        {
+            this.name = name;
+        }
+        else
+        {
+            this.name = "Unnamed Reward";
+        }
     }
     
     public static Reward rewardFromYaml(HashMap<String, Object> yaml)
