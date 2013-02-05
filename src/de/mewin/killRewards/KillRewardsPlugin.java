@@ -17,13 +17,18 @@
 
 package de.mewin.killRewards;
 
+import de.mewin.killRewards.util.ChatHandler;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.logging.Level;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.Yaml;
@@ -67,7 +72,7 @@ public class KillRewardsPlugin extends JavaPlugin
         }
         sprees.put(player, spree);
         
-        if (rewards.containsKey(spree))
+        if (rewards.containsKey(spree) && pl.hasPermission("mcrewards.rewards"))
         {
             Reward reward = rewards.get(spree);
             if (reward.getMessage() != null)
@@ -85,7 +90,8 @@ public class KillRewardsPlugin extends JavaPlugin
             }
         }
         
-        if (worldRewards.containsKey(w.getName()) && worldRewards.get(w.getName()).containsKey(spree))
+        if (worldRewards.containsKey(w.getName()) && worldRewards.get(w.getName()).containsKey(spree)
+                && (pl.hasPermission("mcrewards.rewards") || pl.hasPermission("mcrewards.rewards." + w.getName())))
         {
             Reward reward = worldRewards.get(w.getName()).get(spree);
             if (reward.getMessage() != null)
@@ -156,6 +162,7 @@ public class KillRewardsPlugin extends JavaPlugin
                             multi.addReward(currentReward);
                         }
                         multi.addReward(reward);
+                        lRewards.put(kills, multi);
                     }
                 }
                 else
@@ -182,8 +189,6 @@ public class KillRewardsPlugin extends JavaPlugin
             }
         }
         
-        getLogger().log(Level.INFO, "{0} rewards loaded.", lRewards.size());
-        
         return lRewards;
     }
     
@@ -193,13 +198,161 @@ public class KillRewardsPlugin extends JavaPlugin
         
         rewards = loadRewards(rewardsFile);
         
+        getLogger().log(Level.INFO, "{0} rewards loaded.", rewards.size());
+        
         for (World world : getServer().getWorlds())
         {
             File worldFile = new File(getDataFolder(), "rewards-" + world.getName() + ".yml");
             if (worldFile.exists())
             {
-                worldRewards.put(world.getName(), loadRewards(worldFile));
+                HashMap<Integer, Reward> wRewards = loadRewards(worldFile);
+                worldRewards.put(world.getName(), wRewards);
+                getLogger().log(Level.INFO, "{0} rewards loaded for world {1}.", new Object[] {wRewards.size(), world.getName()});
             }
         }
     }
+    
+    public void loadWorld(String name)
+    {
+        File worldFile = new File(getDataFolder(), "rewards-" + name + ".yml");
+        
+        if (worldFile.exists() && !worldRewards.containsKey(name))
+        {
+            HashMap<Integer, Reward> wRewards = loadRewards(worldFile);
+            worldRewards.put(name, wRewards);
+            getLogger().log(Level.INFO, "{0} rewards loaded for world {1}.", new Object[] {wRewards.size(), name});
+        }
+    }
+    
+    public void reload()
+    {
+        rewards.clear();
+        worldRewards.clear();
+        System.gc();
+        loadRewards();
+    }
+    
+    public void reloadWorld(String name)
+    {
+        worldRewards.remove(name);
+        loadWorld(name);
+    }
+    
+    @Override
+    public boolean onCommand(CommandSender cs, Command cmd, String label, String[] params)
+    {
+        if (cmd.getLabel().equals("rewards"))
+        {
+            if (params.length < 1)
+            {
+                cs.sendMessage(ChatColor.GOLD + cmd.getUsage());
+            }
+            else 
+            {
+                if (params[0].equalsIgnoreCase("reload"))
+                {
+                    if (params.length < 2)
+                    {
+                        ChatHandler handler = new ChatHandler(cs);
+                        getLogger().addHandler(handler);
+                        cs.sendMessage(ChatColor.GREEN + "Reloading rewards...");
+                        reload();
+                        getLogger().removeHandler(handler);
+                    }
+                    else
+                    {   
+                        if (getServer().getWorld(params[1]) == null)
+                        {
+                            cs.sendMessage(ChatColor.RED + "World not found: " + params[1]);
+                        }
+                        else
+                        {
+                            ChatHandler handler = new ChatHandler(cs);
+                            getLogger().addHandler(handler);
+                            cs.sendMessage(ChatColor.GREEN + "Reloading rewards for world " + params[1] + "...");
+                            reloadWorld(params[1]);
+                            getLogger().removeHandler(handler);
+                        }
+                    }
+                }
+                else if (params[0].equalsIgnoreCase("reset"))
+                {
+                    if (params.length < 2)
+                    {
+                        cs.sendMessage(ChatColor.GREEN + "Reseting killing sprees...");
+                        sprees.clear();
+                        cs.sendMessage(ChatColor.GREEN + "Sprees reseted.");
+                    }
+                    else
+                    {
+                        List<Player> pl = getServer().matchPlayer(params[1]);
+                        if (pl.size() < 1)
+                        {
+                            cs.sendMessage(ChatColor.RED + "No player found with that name.");
+                        }
+                        else if (pl.size() > 1)
+                        {
+                            cs.sendMessage(ChatColor.RED + "Multiple players found");
+                        }
+                        else
+                        {
+                            cs.sendMessage(ChatColor.GREEN + "Reseting killing spree of player " + pl.get(0).getName());
+                            sprees.remove(pl.get(0).getName());
+                            cs.sendMessage(ChatColor.GREEN + "Killing sprees for " + pl.get(0).getName() + "reseted.");
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] params)
+    {
+        if (cmd.getLabel().equalsIgnoreCase("rewards"))
+        {
+            ArrayList<String> completitions = new ArrayList<String>();
+            if (params.length < 2)
+            {
+                completitions.add("reload");
+                completitions.add("reset");
+            }
+            else if (params.length < 3)
+            {
+                if (params[0].equalsIgnoreCase("reload"))
+                {
+                    for (World w : getServer().getWorlds())
+                    {
+                        completitions.add(w.getName());
+                    }
+                }
+                else if (params[0].equalsIgnoreCase("reset"))
+                {
+                    for (Player p : getServer().getOnlinePlayers())
+                    {
+                        completitions.add(p.getName());
+                    }
+                }
+            }
+            
+            Iterator<String> itr = completitions.iterator();
+            while (itr.hasNext())
+            {
+                if (!itr.next().toLowerCase().startsWith(params[params.length - 1].toLowerCase()))
+                {
+                    itr.remove();
+                }
+            }
+            
+            return completitions;
+        }
+        else
+        {
+            return super.onTabComplete(sender, cmd, label, params);
+        }
+    }
+    
+    
 }
