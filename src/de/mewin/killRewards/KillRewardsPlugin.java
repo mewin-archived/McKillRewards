@@ -17,6 +17,9 @@
 
 package de.mewin.killRewards;
 
+import de.mewin.killRewards.listeners.KillListener;
+import de.mewin.killRewards.rewards.HiddenMultiReward;
+import de.mewin.killRewards.rewards.Reward;
 import de.mewin.killRewards.util.ChatHandler;
 import java.io.File;
 import java.io.FileInputStream;

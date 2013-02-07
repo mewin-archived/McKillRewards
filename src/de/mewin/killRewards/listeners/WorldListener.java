@@ -15,31 +15,36 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.mewin.killRewards;
+package de.mewin.killRewards.listeners;
 
-import org.bukkit.entity.Player;
+import de.mewin.killRewards.KillRewardsPlugin;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.world.WorldInitEvent;
+import org.bukkit.event.world.WorldLoadEvent;
 
 /**
  *
  * @author mewin<mewin001@hotmail.de>
  */
-public class ExpReward extends Reward
+public class WorldListener implements Listener
 {
-    private int exp;
-    private int levels;
+    private KillRewardsPlugin plugin;
     
-    public ExpReward(int kills, String name, int exp, int levels)
+    public WorldListener(KillRewardsPlugin plugin)
     {
-        super(kills, name);
-        this.exp = exp;
-        this.levels = levels;
+        this.plugin = plugin;
     }
     
-    @Override
-    public void give(Player player)
+    @EventHandler
+    public void onWorldLoad(WorldLoadEvent e)
     {
-        player.giveExp(exp);
-        player.giveExpLevels(levels);
+        plugin.loadWorld(e.getWorld().getName());
     }
-
+    
+    @EventHandler
+    public void onWorldInit(WorldInitEvent e)
+    {
+        plugin.loadWorld(e.getWorld().getName());
+    }
 }

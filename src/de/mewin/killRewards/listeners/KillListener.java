@@ -15,8 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package de.mewin.killRewards;
+package de.mewin.killRewards.listeners;
 
+import de.mewin.killRewards.KillRewardsPlugin;
 import java.util.HashMap;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
