@@ -1,7 +1,8 @@
 # Sample world groups file
 # sets up which worlds share their killing sprees
-# any world that is not in this file will be put into an own group
-# create a key for any world you want to add to a group and set it to the group you want it to belong to
-world: main
-world_nether: main
-world_the_end: main
+# first set a name for the world group (can be anything, but must be unique)
+main:
+  # then list the worlds that belong to the group
+  - world
+  - world_nether
+  - world_the_end
