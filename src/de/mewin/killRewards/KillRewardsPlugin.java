@@ -24,11 +24,14 @@ import de.mewin.killRewards.util.ChatHandler;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
@@ -45,37 +48,74 @@ import org.yaml.snakeyaml.Yaml;
 public class KillRewardsPlugin extends JavaPlugin
 {
     private KillListener listener;
-    private HashMap<String, Integer> sprees;
+    private HashMap<String, HashMap<String, Integer>> sprees;
     private HashMap<Integer, Reward> rewards;
     private HashMap<String, HashMap<Integer, Reward>> worldRewards;
+    private HashMap<String, String> worldGroups;
     
     @Override
     public void onEnable()
     {
-        sprees = new HashMap<String, Integer>();
+        sprees = new HashMap<String, HashMap<String, Integer>>();
         rewards = new HashMap<Integer, Reward>();
         worldRewards = new HashMap<String, HashMap<Integer, Reward>>();
+        worldGroups = new HashMap<String, String>();
         listener = new KillListener(this);
+        loadSprees();
         loadRewards();
+        loadWorldGroups();
         getServer().getPluginManager().registerEvents(listener, this);
     }
 
     @Override
     public void onDisable()
     {
+        getLogger().log(Level.INFO, "Saving sprees...");
+        saveSprees();
+    }
+    
+    private String getWorldGroup(World w)
+    {
+        if (!worldGroups.containsKey(w.getName()))
+        {
+            worldGroups.put(w.getName(), uniqueWGroupName(w.getName()));
+        }
         
+        return worldGroups.get(w.getName());
+    }
+    
+    private String uniqueWGroupName(String wName)
+    {
+        String name = wName + "-group";
+        while (worldGroups.containsKey(name))
+        {
+            name += "_";
+        }
+        
+        return name;
     }
     
     public void addSpree(String player)
     {
         Player pl = getServer().getPlayer(player);
         World w = pl.getWorld();
+        String worldGroup = getWorldGroup(w);
+        HashMap<String, Integer> playerMap = new HashMap<String, Integer>();
         int spree = 1;
         if (sprees.containsKey(player))
         {
-            spree = sprees.get(player) + 1;
+            playerMap = sprees.get(player);
+            if (playerMap.containsKey(worldGroup))
+            {
+                spree = playerMap.get(worldGroup) + 1;
+            }
+            playerMap.put(worldGroup, spree);
         }
-        sprees.put(player, spree);
+        else
+        {
+            playerMap.put(worldGroup, spree);
+            sprees.put(player, playerMap);
+        }
         
         if (rewards.containsKey(spree) && pl.hasPermission("mcrewards.rewards"))
         {
@@ -122,9 +162,10 @@ public class KillRewardsPlugin extends JavaPlugin
     
     public int getSpree(String player)
     {
-        if (sprees.containsKey(player))
+        Player pl = getServer().getPlayer(player);
+        if (sprees.containsKey(player) && sprees.get(player).containsKey(pl.getWorld().getName()))
         {
-            return sprees.get(player);
+            return sprees.get(player).get(pl.getWorld().getName());
         }
         else
         {
@@ -227,6 +268,50 @@ public class KillRewardsPlugin extends JavaPlugin
         }
     }
     
+    private void loadWorldGroups()
+    {
+        File wGroupFile = new File(this.getDataFolder(), "worldGroups.yml");
+        Yaml yaml = new Yaml();
+        FileInputStream in = null;
+        worldGroups.clear();
+        if (!wGroupFile.exists())
+        {
+            createDefaultWorldGroupsFile(wGroupFile);
+        }
+        try
+        {
+            HashMap<String, Object> map;
+            in = new FileInputStream(wGroupFile);
+            map = (HashMap<String, Object>) yaml.load(in);
+            
+            if (map != null)
+            {
+                for (Entry<String, Object> ent : map.entrySet())
+                {
+                    worldGroups.put(ent.getKey(), (String) ent.getValue());
+                }
+            }
+        }
+        catch(Exception ex)
+        {
+            getLogger().log(Level.WARNING, "Error loading world groups: ", ex);
+        }
+        finally
+        {
+            if (in != null)
+            {
+                try
+                {
+                    in.close();
+                }
+                catch(IOException ex)
+                {
+                    
+                }
+            }
+        }
+    }
+    
     public void loadWorld(String name)
     {
         File worldFile = new File(getDataFolder(), "rewards-" + name + ".yml");
@@ -245,6 +330,7 @@ public class KillRewardsPlugin extends JavaPlugin
         worldRewards.clear();
         System.gc();
         loadRewards();
+        loadWorldGroups();
     }
     
     public void reloadWorld(String name)
@@ -406,6 +492,115 @@ public class KillRewardsPlugin extends JavaPlugin
             catch(Exception ex)
             {
                 
+            }
+        }
+    }
+
+    private void createDefaultWorldGroupsFile(File file)
+    {
+        FileOutputStream out = null;
+        InputStream in = null;
+        try
+        {
+            file.createNewFile();
+            out = new FileOutputStream(file);
+            in = KillRewardsPlugin.class.getResourceAsStream("/worldGroups.yml");
+            
+            int i;
+            while ((i = in.read()) > -1)
+            {
+                out.write((byte) i);
+            }
+        }
+        catch(Exception ex)
+        {
+            getLogger().log(Level.SEVERE, "Could not create default worldGroups.yml file: ", ex);
+        }
+        finally
+        {
+            try
+            {
+                if (out != null)
+                {
+                    out.close();
+                }
+                
+                if (in != null)
+                {
+                    in.close();
+                }
+            }
+            catch(Exception ex)
+            {
+                
+            }
+        }
+    }
+    
+    private void loadSprees()
+    {
+        File spreeFile = new File(getDataFolder(), "sprees.yml");
+        Yaml yaml = new Yaml();
+        FileInputStream in = null;
+        if (!spreeFile.exists())
+        {
+            return;
+        }
+        try
+        {
+            sprees = (HashMap) yaml.load(in);
+        }
+        catch(Exception ex)
+        {
+            getLogger().log(Level.WARNING, "Could not load sprees: ", ex);
+        }
+        finally
+        {
+            if (in != null)
+            {
+                try
+                {
+                    in.close();
+                }
+                catch(Exception ex)
+                {
+                    
+                }
+            }
+        }
+    }
+    
+    private void saveSprees()
+    {
+        File spreeFile = new File(this.getDataFolder(), "sprees.yml");
+        Yaml yaml = new Yaml();
+        FileWriter out = null;
+        try
+        {
+            if (!spreeFile.exists())
+            {
+                spreeFile.createNewFile();
+            }
+            out = new FileWriter(spreeFile);
+            
+            yaml.dump(sprees, out);
+        }
+        catch(Exception ex)
+        {
+            getLogger().log(Level.WARNING, "Could not save sprees: ", ex);
+        }
+        finally
+        {
+            if (out != null)
+            {
+                try
+                {
+                    out.close();
+                }
+                catch(Exception ex)
+                {
+                    
+                }
             }
         }
     }
