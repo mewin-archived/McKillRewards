@@ -399,7 +399,7 @@ public class KillRewardsPlugin extends JavaPlugin
                         {
                             cs.sendMessage(ChatColor.GREEN + "Reseting killing spree of player " + pl.get(0).getName());
                             sprees.remove(pl.get(0).getName());
-                            cs.sendMessage(ChatColor.GREEN + "Killing sprees for " + pl.get(0).getName() + "reseted.");
+                            cs.sendMessage(ChatColor.GREEN + "Killing sprees for " + pl.get(0).getName() + " reseted.");
                         }
                     }
                 }
@@ -548,6 +548,7 @@ public class KillRewardsPlugin extends JavaPlugin
         }
         try
         {
+            in = new FileInputStream(spreeFile);
             sprees = (HashMap) yaml.load(in);
         }
         catch(Exception ex)
