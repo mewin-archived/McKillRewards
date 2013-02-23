@@ -53,7 +53,8 @@ public class KillListener implements Listener
             });
         }
         else if (e.getDamage() > 0 && e.getDamager() instanceof Projectile
-                && ((Projectile) e.getDamager()).getShooter() instanceof Player)
+                && ((Projectile) e.getDamager()).getShooter() instanceof Player
+                && e.getEntity() instanceof Player)
         {
             lastAttack.put(((Player) e.getEntity()).getName(), new Object[] {
                 ((Player) ((Projectile) e.getDamager()).getShooter()).getName(), 
