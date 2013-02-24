@@ -17,6 +17,7 @@
 
 package de.mewin.killRewards.rewards;
 
+import de.mewin.killRewards.VaultConnector;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
@@ -73,6 +74,18 @@ public abstract class Reward
             else if (type.equalsIgnoreCase("potion"))
             {
                 reward = new PotionReward(kills, (String) yaml.get("name"), (HashMap) yaml.get("effect"));
+            }
+            else if (type.equalsIgnoreCase("money"))
+            {
+                VaultConnector connector = VaultConnector.getInstance();
+                if (!connector.hasVault())
+                {
+                    throw new RuntimeException("Vault not found.");
+                }
+                else
+                {
+                    reward = new MoneyReward(kills, (Double) yaml.get("amount"), (String) yaml.get("name"));
+                }
             }
             else
             {
