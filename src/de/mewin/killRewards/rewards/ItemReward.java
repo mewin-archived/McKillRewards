@@ -98,7 +98,12 @@ public class ItemReward extends Reward
             if (map.containsKey("lore"))
             {
                 ItemMeta meta = stack.getItemMeta();
-                meta.setLore((ArrayList) map.get("lore"));
+                ArrayList<String> lore = new ArrayList<String>();
+                for (Object obj : (ArrayList) map.get("lore"))
+                {
+                    lore.add(ChatColor.translateAlternateColorCodes('&', obj.toString()));
+                }
+                meta.setLore(lore);
                 stack.setItemMeta(meta);
             }
             
