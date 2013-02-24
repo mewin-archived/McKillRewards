@@ -3,6 +3,7 @@ version: 0.4
 authors: [ mewin ]
 main: de.mewin.killRewards.KillRewardsPlugin
 load: POSTWORLD
+softdepend: [ Vault ]
 commands:
   rewards:
     usage: /rewards <subcommand>
