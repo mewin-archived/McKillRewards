@@ -37,6 +37,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.yaml.snakeyaml.Yaml;
@@ -48,17 +49,24 @@ import org.yaml.snakeyaml.Yaml;
 public class KillRewardsPlugin extends JavaPlugin
 {
     private KillListener listener;
+    private ArrayList<EntityType> mobs;
     private HashMap<String, HashMap<String, Integer>> sprees;
+    private HashMap<String, HashMap<String, Integer>> mobSprees;
     private HashMap<Integer, Reward> rewards;
+    private HashMap<Integer, Reward> mobRewards;
     private HashMap<String, HashMap<Integer, Reward>> worldRewards;
+    private HashMap<String, HashMap<Integer, Reward>> worldMobRewards;
     private HashMap<String, String> worldGroups;
     
     @Override
     public void onEnable()
     {
         sprees = new HashMap<String, HashMap<String, Integer>>();
+        mobSprees = new HashMap<String, HashMap<String, Integer>>();
         rewards = new HashMap<Integer, Reward>();
+        mobRewards = new HashMap<Integer, Reward>();
         worldRewards = new HashMap<String, HashMap<Integer, Reward>>();
+        worldMobRewards = new HashMap<String, HashMap<Integer, Reward>>();
         worldGroups = new HashMap<String, String>();
         listener = new KillListener(this);
         loadSprees();
@@ -72,6 +80,11 @@ public class KillRewardsPlugin extends JavaPlugin
     {
         getLogger().log(Level.INFO, "Saving sprees...");
         saveSprees();
+    }
+    
+    public boolean isValidMob(EntityType type)
+    {
+        return mobs.contains(type);
     }
     
     private String getWorldGroup(World w)
@@ -95,16 +108,31 @@ public class KillRewardsPlugin extends JavaPlugin
         return name;
     }
     
-    public void addSpree(String player)
+    public void addSpree(String player, boolean mobSpree)
     {
         Player pl = getServer().getPlayer(player);
         World w = pl.getWorld();
         String worldGroup = getWorldGroup(w);
         HashMap<String, Integer> playerMap = new HashMap<String, Integer>();
-        int spree = 1;
-        if (sprees.containsKey(player))
+        HashMap<String, HashMap<String, Integer>> lSprees;
+        HashMap<Integer, Reward> lRewards;
+        HashMap<String, HashMap<Integer, Reward>> lWorldRewards;
+        if (mobSpree)
         {
-            playerMap = sprees.get(player);
+            lSprees = this.mobSprees;
+            lRewards = this.mobRewards;
+            lWorldRewards = this.worldMobRewards;
+        }
+        else
+        {
+            lSprees = this.sprees;
+            lRewards = this.rewards;
+            lWorldRewards = this.worldRewards;
+        }
+        int spree = 1;
+        if (lSprees.containsKey(player))
+        {
+            playerMap = lSprees.get(player);
             if (playerMap.containsKey(worldGroup))
             {
                 spree = playerMap.get(worldGroup) + 1;
@@ -114,12 +142,12 @@ public class KillRewardsPlugin extends JavaPlugin
         else
         {
             playerMap.put(worldGroup, spree);
-            sprees.put(player, playerMap);
+            lSprees.put(player, playerMap);
         }
         
-        if (rewards.containsKey(spree) && pl.hasPermission("mcrewards.rewards"))
+        if (lRewards.containsKey(spree) && pl.hasPermission("mcrewards.rewards"))
         {
-            Reward reward = rewards.get(spree);
+            Reward reward = lRewards.get(spree);
             if (reward.getMessage() != null)
             {
                 pl.sendMessage(ChatColor.translateAlternateColorCodes('&', reward.getMessage()));
@@ -135,10 +163,10 @@ public class KillRewardsPlugin extends JavaPlugin
             }
         }
         
-        if (worldRewards.containsKey(w.getName()) && worldRewards.get(w.getName()).containsKey(spree)
+        if (lWorldRewards.containsKey(w.getName()) && lWorldRewards.get(w.getName()).containsKey(spree)
                 && (pl.hasPermission("mcrewards.rewards") || pl.hasPermission("mcrewards.rewards." + w.getName())))
         {
-            Reward reward = worldRewards.get(w.getName()).get(spree);
+            Reward reward = lWorldRewards.get(w.getName()).get(spree);
             if (reward.getMessage() != null)
             {
                 pl.sendMessage(ChatColor.translateAlternateColorCodes('&', reward.getMessage()));
@@ -158,6 +186,7 @@ public class KillRewardsPlugin extends JavaPlugin
     public void resetSpree(String player)
     {
         sprees.remove(player);
+        mobSprees.remove(player);
     }
     
     public int getSpree(String player)
@@ -166,6 +195,19 @@ public class KillRewardsPlugin extends JavaPlugin
         if (sprees.containsKey(player) && sprees.get(player).containsKey(pl.getWorld().getName()))
         {
             return sprees.get(player).get(pl.getWorld().getName());
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    
+    public int getMobSpree(String player)
+    {
+        Player pl = getServer().getPlayer(player);
+        if (mobSprees.containsKey(player) && mobSprees.get(player).containsKey(pl.getWorld().getName()))
+        {
+            return mobSprees.get(player).get(pl.getWorld().getName());
         }
         else
         {
@@ -241,6 +283,8 @@ public class KillRewardsPlugin extends JavaPlugin
     private void loadRewards()
     {
         File rewardsFile = new File(getDataFolder(), "rewards.yml");
+        File mobRewardsFile = new File(getDataFolder(), "mobrewards.yml");
+        File mobsFile = new File(getDataFolder(), "mobs.yml");
         
         if (!getDataFolder().exists())
         {
@@ -252,20 +296,94 @@ public class KillRewardsPlugin extends JavaPlugin
             createDefaultRewardsFile(rewardsFile);
         }
         
+        if (!mobsFile.exists())
+        {
+            createDefaultMobsFile(mobsFile);
+        }
+        
+        if (mobRewardsFile.exists())
+        {
+            mobRewards = loadRewards(mobRewardsFile);
+        }
+        else
+        {
+            mobRewards = new HashMap<Integer, Reward>();
+        }
+        
         rewards = loadRewards(rewardsFile);
+        mobs = loadMobs(mobsFile);
         
         getLogger().log(Level.INFO, "{0} rewards loaded.", rewards.size());
+        getLogger().log(Level.INFO, "{0} mob rewards loaded.", mobRewards.size());
         
         for (World world : getServer().getWorlds())
         {
             File worldFile = new File(getDataFolder(), "rewards-" + world.getName() + ".yml");
+            File worldMobFile = new File(getDataFolder(), "mobrewards-" + world.getName() + ".yml");
             if (worldFile.exists())
             {
                 HashMap<Integer, Reward> wRewards = loadRewards(worldFile);
                 worldRewards.put(world.getName(), wRewards);
                 getLogger().log(Level.INFO, "{0} rewards loaded for world {1}.", new Object[] {wRewards.size(), world.getName()});
             }
+            if (worldMobFile.exists())
+            {
+                HashMap<Integer, Reward> wmRewards = loadRewards(worldMobFile);
+                worldMobRewards.put(world.getName(), wmRewards);
+                getLogger().log(Level.INFO, "{0} mob rewards loaded for world {1}.", new Object[] {wmRewards.size(), world.getName()});
+            }
         }
+    }
+    
+    private ArrayList<EntityType> loadMobs(File file)
+    {
+        FileInputStream in = null;
+        Yaml yaml = new Yaml();
+        ArrayList<EntityType> tList = new ArrayList<EntityType>();
+        try
+        {
+            in = new FileInputStream(file);
+            ArrayList list = (ArrayList) yaml.load(in);
+            
+            for (Object obj : list)
+            {
+                if (obj instanceof String)
+                {
+                    try
+                    {
+                        EntityType type = EntityType.valueOf(((String) obj).toUpperCase());
+                        if (type != null)
+                        {
+                            tList.add(type);
+                        }
+                    }
+                    catch(Exception ex)
+                    {
+                        getLogger().log(Level.WARNING, "Unknown entity type: {0}", obj);
+                    }
+                }
+            }
+        }
+        catch(Exception ex)
+        {
+            getLogger().log(Level.SEVERE, "Could not load mob types: ", ex);
+        }
+        finally
+        {
+            if (in != null)
+            {
+                try
+                {
+                    in.close();
+                }
+                catch(IOException ex)
+                {
+                    
+                }
+            }
+        }
+        
+        return tList;
     }
     
     private void loadWorldGroups()
@@ -315,12 +433,20 @@ public class KillRewardsPlugin extends JavaPlugin
     public void loadWorld(String name)
     {
         File worldFile = new File(getDataFolder(), "rewards-" + name + ".yml");
+        File worldMobFile = new File(getDataFolder(), "mobrewards-" + name + ".yml");
         
         if (worldFile.exists() && !worldRewards.containsKey(name))
         {
             HashMap<Integer, Reward> wRewards = loadRewards(worldFile);
             worldRewards.put(name, wRewards);
             getLogger().log(Level.INFO, "{0} rewards loaded for world {1}.", new Object[] {wRewards.size(), name});
+        }
+        
+        if (worldMobFile.exists() && !worldMobRewards.containsKey(name))
+        {
+            HashMap<Integer, Reward> wmRewards = loadRewards(worldMobFile);
+            worldMobRewards.put(name, wmRewards);
+            getLogger().log(Level.INFO, "{0} mob rewards loaded for world {1}.", new Object[] {wmRewards.size(), name});
         }
     }
     
@@ -336,6 +462,7 @@ public class KillRewardsPlugin extends JavaPlugin
     public void reloadWorld(String name)
     {
         worldRewards.remove(name);
+        worldMobRewards.remove(name);
         loadWorld(name);
     }
     
@@ -382,6 +509,7 @@ public class KillRewardsPlugin extends JavaPlugin
                     {
                         cs.sendMessage(ChatColor.GREEN + "Reseting killing sprees...");
                         sprees.clear();
+                        mobSprees.clear();
                         cs.sendMessage(ChatColor.GREEN + "Sprees reseted.");
                     }
                     else
@@ -399,6 +527,7 @@ public class KillRewardsPlugin extends JavaPlugin
                         {
                             cs.sendMessage(ChatColor.GREEN + "Reseting killing spree of player " + pl.get(0).getName());
                             sprees.remove(pl.get(0).getName());
+                            mobSprees.remove(pl.get(0).getName());
                             cs.sendMessage(ChatColor.GREEN + "Killing sprees for " + pl.get(0).getName() + " reseted.");
                         }
                     }
@@ -537,9 +666,51 @@ public class KillRewardsPlugin extends JavaPlugin
         }
     }
     
+    private void createDefaultMobsFile(File file)
+    {
+        FileOutputStream out = null;
+        InputStream in = null;
+        try
+        {
+            file.createNewFile();
+            out = new FileOutputStream(file);
+            in = KillRewardsPlugin.class.getResourceAsStream("/mobs.yml");
+            
+            int i;
+            while ((i = in.read()) > -1)
+            {
+                out.write((byte) i);
+            }
+        }
+        catch(Exception ex)
+        {
+            getLogger().log(Level.SEVERE, "Could not create default worldGroups.yml file: ", ex);
+        }
+        finally
+        {
+            try
+            {
+                if (out != null)
+                {
+                    out.close();
+                }
+                
+                if (in != null)
+                {
+                    in.close();
+                }
+            }
+            catch(Exception ex)
+            {
+                
+            }
+        }
+    }
+    
     private void loadSprees()
     {
         File spreeFile = new File(getDataFolder(), "sprees.yml");
+        File mobSpreeFile = new File(getDataFolder(), "mobSprees.yml");
         Yaml yaml = new Yaml();
         FileInputStream in = null;
         if (!spreeFile.exists())
@@ -550,6 +721,9 @@ public class KillRewardsPlugin extends JavaPlugin
         {
             in = new FileInputStream(spreeFile);
             sprees = (HashMap) yaml.load(in);
+            in.close();
+            in = new FileInputStream(mobSpreeFile);
+            mobSprees = (HashMap) yaml.load(in);
         }
         catch(Exception ex)
         {
@@ -574,6 +748,7 @@ public class KillRewardsPlugin extends JavaPlugin
     private void saveSprees()
     {
         File spreeFile = new File(this.getDataFolder(), "sprees.yml");
+        File mobSpreeFile = new File(this.getDataFolder(), "mobSprees.yml");
         Yaml yaml = new Yaml();
         FileWriter out = null;
         try
@@ -583,8 +758,15 @@ public class KillRewardsPlugin extends JavaPlugin
                 spreeFile.createNewFile();
             }
             out = new FileWriter(spreeFile);
-            
             yaml.dump(sprees, out);
+            
+            if (!mobSpreeFile.exists())
+            {
+                mobSpreeFile.createNewFile();
+            }
+            out.close();
+            out = new FileWriter(mobSpreeFile);
+            yaml.dump(mobSprees, out);
         }
         catch(Exception ex)
         {

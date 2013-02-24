@@ -1,5 +1,5 @@
 name: McKillRewards
-version: 0.3
+version: 0.4
 authors: [ mewin ]
 main: de.mewin.killRewards.KillRewardsPlugin
 load: POSTWORLD

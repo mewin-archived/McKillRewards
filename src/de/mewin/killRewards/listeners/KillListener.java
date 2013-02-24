@@ -19,11 +19,14 @@ package de.mewin.killRewards.listeners;
 
 import de.mewin.killRewards.KillRewardsPlugin;
 import java.util.HashMap;
+import java.util.UUID;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 
 /**
@@ -33,6 +36,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 public class KillListener implements Listener
 {
     private HashMap<String, Object[]> lastAttack;
+    private HashMap<UUID, Object[]> lastMobAttack;
     private KillRewardsPlugin plugin;
     private int getKillDifference = 15000;
     
@@ -40,25 +44,33 @@ public class KillListener implements Listener
     {
         this.plugin = plugin;
         lastAttack = new HashMap<String, Object[]>();
+        lastMobAttack = new HashMap<UUID, Object[]>();
     }
     
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent e)
     {
-        if (e.getDamage() > 0 && e.getDamager() instanceof Player && e.getEntity() instanceof Player)
+        Entity damager = e.getDamager();
+        if (damager instanceof Projectile)
         {
-            lastAttack.put(((Player) e.getEntity()).getName(), new Object[] {
-                ((Player) e.getDamager()).getName(), 
-                System.currentTimeMillis()
-            });
+            damager = ((Projectile) damager).getShooter();
         }
-        else if (e.getDamage() > 0 && e.getDamager() instanceof Projectile
-                && ((Projectile) e.getDamager()).getShooter() instanceof Player)
+        if (e.getDamage() > 0 && damager instanceof Player)
         {
-            lastAttack.put(((Player) e.getEntity()).getName(), new Object[] {
-                ((Player) ((Projectile) e.getDamager()).getShooter()).getName(), 
-                System.currentTimeMillis()
-            });
+            if (e.getEntity() instanceof Player)
+            {
+                lastAttack.put(((Player) e.getEntity()).getName(), new Object[] {
+                    ((Player) damager).getName(), 
+                    System.currentTimeMillis()
+                });
+            }
+            else if (plugin.isValidMob(e.getEntityType()))
+            {
+                lastMobAttack.put(e.getEntity().getUniqueId(), new Object[] {
+                    ((Player) damager).getName(), 
+                    System.currentTimeMillis()
+                });
+            }
         }
     }
     
@@ -74,12 +86,31 @@ public class KillListener implements Listener
             
             if (time + getKillDifference > System.currentTimeMillis())
             {
-                plugin.addSpree(attacker);
+                plugin.addSpree(attacker, false);
             }
         }
         
         plugin.resetSpree(e.getEntity().getName());
         
         lastAttack.remove(e.getEntity().getName());
+    }
+    
+    @EventHandler
+    public void onEntityDeath(EntityDeathEvent e)
+    {
+        if (!(e.getEntity() instanceof Player) && lastMobAttack.containsKey(e.getEntity().getUniqueId()))
+        {
+            Object[] la = lastMobAttack.get(e.getEntity().getUniqueId());
+            
+            String attacker = (String) la[0];
+            long time = (Long) la[1];
+            
+            if (time + getKillDifference > System.currentTimeMillis())
+            {
+                plugin.addSpree(attacker, true);
+            }
+        }
+        
+        lastMobAttack.remove(e.getEntity().getUniqueId());
     }
 }
